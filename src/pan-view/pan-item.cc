@@ -596,32 +596,33 @@ static bool pan_item_match_path(const PanItem *pi, const gchar *path,
 }
 
 /* when ignore_case and partial are TRUE, path should be converted to lower case */
-GList *pan_item_find_by_path(PanWindow *pw, PanItemType type, const gchar *path,
-			     gboolean ignore_case, gboolean partial)
+PanItemList pan_item_find_by_path(PanWindow *pw, PanItemType type, const gchar *path,
+                                  gboolean ignore_case, gboolean partial)
 {
-	if (!path) return nullptr;
-	if (partial && path[0] == G_DIR_SEPARATOR) return nullptr;
+	if (!path) return {};
+	if (partial && path[0] == G_DIR_SEPARATOR) return {};
 
-	const auto pan_item_find_by_path_l = [type, path, ignore_case, partial](GList *list, GList *search_list)
+	const auto pan_item_find_by_path_l = [type, path, ignore_case, partial](PanItemList &list, const GList *search_list)
 	{
-		for (GList *work = g_list_last(search_list); work; work = work->prev)
+		for (const GList *work = search_list; work; work = work->prev)
 			{
 			auto *pi = static_cast<PanItem *>(work->data);
 
 			if (pi->is_type(type) && pi->fd &&
 			    pan_item_match_path(pi, path, ignore_case, partial))
 				{
-				list = g_list_prepend(list, pi);
+				list.push_back(pi);
 				}
 			}
 
 		return list;
 	};
 
-	GList *list = pan_item_find_by_path_l(nullptr, pw->list_static);
-	list = pan_item_find_by_path_l(list, pw->list);
+	PanItemList list;
+	pan_item_find_by_path_l(list, pw->list_static);
+	pan_item_find_by_path_l(list, pw->list);
 
-	return g_list_reverse(list);
+	return list;
 }
 
 PanItem *pan_item_find_by_fd(PanWindow *pw, PanItemType type, FileData *fd,
@@ -629,8 +630,8 @@ PanItem *pan_item_find_by_fd(PanWindow *pw, PanItemType type, FileData *fd,
 {
 	if (!fd) return nullptr;
 
-	g_autoptr(GList) list = pan_item_find_by_path(pw, type, fd->path, ignore_case, partial);
-	return list ? static_cast<PanItem *>(list->data) : nullptr;
+	PanItemList list = pan_item_find_by_path(pw, type, fd->path, ignore_case, partial);
+	return list.empty() ? nullptr : list.front();
 }
 
 
