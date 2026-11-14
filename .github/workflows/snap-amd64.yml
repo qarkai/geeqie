@@ -64,6 +64,18 @@ jobs:
           xvfb-run --auto-servernum --auth-file "$HOME/.Xauthority" \
             python3 build-aux/snap-smoke-test.py snap run geeqie.x11
 
+      - name: Publish Snap to edge
+        if: >-
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/master' &&
+          github.repository == 'BestImageViewer/geeqie'
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: edge
+
       - name: Upload smoke test log
         if: always()
         uses: actions/upload-artifact@v4
